@@ -155,12 +155,13 @@
         alert("저장된 출결 정보를 불러오지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
         throw error;
       }
-      const onlyUnusedDefaults = data.students.length > 0
-        && data.students.every((student, index) => student.name === `학생${index + 1}`)
-        && Object.keys(data.records).length === 0
-        && Object.keys(data.notes).length === 0;
-      if (onlyUnusedDefaults) {
-        data.students = [];
+      if (data.students.length === 0) {
+        while (data.students.length < 25) {
+          data.students.push({
+            id: crypto.randomUUID(),
+            name: `학생${data.students.length + 1}`
+          });
+        }
         save();
       }
       function save() {
