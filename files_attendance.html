@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>교실 출결 관리</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; color: #202b3c; background: #f5f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #fff; border-bottom: 1px solid #e3e8f0; }
+    .wrap { max-width: 1540px; margin: auto; padding: 0 24px; }
+    .heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 20px; padding-bottom: 18px; }
+    h1 { margin: 0; font-size: 23px; letter-spacing: -.04em; }
+    .sub { margin: 5px 0 0; color: #6b778b; font-size: 13px; }
+    nav { display: flex; gap: 24px; }
+    nav button { border: 0; border-bottom: 3px solid transparent; background: transparent; padding: 13px 2px; color: #728096; font-weight: 700; cursor: pointer; }
+    nav button.active { color: #315fd5; border-color: #315fd5; }
+    main { padding-top: 24px !important; padding-bottom: 48px !important; }
+    .card { background: #fff; border: 1px solid #e2e8f1; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px #1f325b08; }
+    .row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .between { justify-content: space-between; }
+    .title { margin: 0; font-size: 17px; }
+    .muted { color: #758196; font-size: 13px; line-height: 1.5; }
+    input, select, textarea, button { font: inherit; }
+    input, textarea, select { border: 1px solid #dce3ed; border-radius: 7px; color: #263349; background: #fff; padding: 9px 10px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid #aebffc; outline-offset: 1px; }
+    button { border: 1px solid #dce3ed; border-radius: 7px; padding: 9px 13px; background: #fff; color: #34425a; cursor: pointer; font-weight: 650; }
+    button:hover { background: #f4f7fc; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .student-name { width: 120px; min-width: 0; font-weight: 650; }
+    .table-wrap { overflow-x: auto; margin: 16px -20px 0; }
+    table { border-collapse: collapse; width: 100%; text-align: center; font-size: 13px; }
+    .daily-table { min-width: 1200px; table-layout: fixed; }
+    .daily-table th:first-child, .daily-table td:first-child { position: sticky; left: 0; min-width: 60px; width: 60px; background: #fff; z-index: 1; }
+    .daily-table th:nth-child(2), .daily-table td:nth-child(2) { position: sticky; left: 60px; min-width: 140px; width: 140px; background: #fff; z-index: 1; }
+    .daily-table th:first-child, .daily-table th:nth-child(2) { background: #f7f9fc; z-index: 2; }
+    th { background: #f7f9fc; color: #68778d; font-size: 12px; white-space: nowrap; }
+    th, td { padding: 11px 8px; border-bottom: 1px solid #edf0f5; }
+    th:first-child, td:first-child { text-align: left; padding-left: 20px; white-space: nowrap; }
+    td select { width: 86px; padding: 7px 3px; font-size: 12px; }
+    .status-present { background: #eaf6ef; color: #287c4b; border-color: #c9ead5; }
+    .status-late, .status-early { background: #fff4e5; color: #a46113; border-color: #fae2bf; }
+    .status-official, .status-sick { background: #fceef0; color: #ad4b5c; border-color: #f4d7dd; }
+    .empty { padding: 36px 20px; text-align: center; color: #8894a5; }
+    .notes { margin-top: 20px; }
+    .notes h3 { font-size: 14px; margin: 0 0 10px; }
+    .event { background: #f7f9fd; border-radius: 7px; padding: 8px 10px; font-size: 13px; margin-bottom: 6px; }
+    textarea { display: block; width: 100%; min-height: 75px; resize: vertical; margin-top: 10px; }
+    .badge { background: #edf2ff; color: #4265c4; border-radius: 20px; padding: 4px 9px; font-size: 12px; font-weight: 700; }
+    .month-table { min-width: 1050px; }
+    .month-table th, .month-table td { min-width: 37px; padding: 9px 5px; }
+    .month-table td:first-child, .month-table th:first-child { position: sticky; left: 0; background: #fff; min-width: 100px; z-index: 1; }
+    .month-table th:first-child { background: #f7f9fc; }
+    .month-cell { white-space: nowrap; font-size: 11px; }
+    .legend { margin-top: 14px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 600px) {
+      .wrap { padding-left: 14px; padding-right: 14px; }
+      .heading { align-items: flex-start; }
+      .heading .badge { display: none; }
+      .card { padding: 16px; }
+      .table-wrap { margin-left: -16px; margin-right: -16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap heading">
+      <div><h1>교실 출결 관리</h1><p class="sub">교시별 출결부터 월별 현황까지 한눈에</p></div>
+      <span class="badge">학생 25명 · 7교시</span>
+    </div>
+    <nav class="wrap" aria-label="화면 선택">
+      <button type="button" class="active" data-tab="daily" aria-selected="true">일별 출결</button>
+      <button type="button" data-tab="monthly" aria-selected="false">월별 출결현황</button>
+    </nav>
+  </header>
+  <main class="wrap">
+    <section id="daily" class="card" aria-labelledby="daily-title">
+      <div class="row between">
+        <div><h2 class="title" id="daily-title">일별 출결 입력 <span class="badge">학생 25명</span></h2><p class="muted">학생 이름을 눌러 수정하고, 교시마다 드롭다운에서 출결을 선택하세요. 미입력은 집계되지 않습니다.<br>화면이 좁으면 표를 좌우로 밀어 나머지 교시를 확인하세요.</p></div>
+        <div class="row"><label for="date">날짜</label><input id="date" type="date"><button id="fill-present" type="button">미입력 전체 출석</button></div>
+      </div>
+      <div class="table-wrap">
+        <table class="daily-table">
+          <thead><tr><th>번호</th><th>학생 이름</th><th>1교시</th><th>2교시</th><th>3교시</th><th>4교시</th><th>5교시</th><th>6교시</th><th>7교시</th><th>출석</th><th>결과</th><th>조퇴</th><th>지각</th><th>이수시간</th></tr></thead>
+          <tbody id="daily-body"></tbody>
+        </table>
+      </div>
+      <p class="muted">오른쪽은 전체 기록의 누적 횟수입니다. 같은 날 같은 상태가 여러 교시에 있어도 1회로 집계하며, 공결·병결은 결과에 합산합니다. 이수시간은 출석으로 선택한 교시당 1시간입니다.</p>
+      <div class="notes">
+        <h3>비고 <span class="muted">· 선택한 날짜</span></h3>
+        <div id="events"></div>
+        <label for="note" class="muted">추가 메모</label>
+        <textarea id="note" placeholder="이 날짜의 특이사항을 기록하세요."></textarea>
+      </div>
+    </section>
+
+    <section id="monthly" class="card" aria-labelledby="monthly-title" hidden>
+      <div class="row between">
+        <div><h2 class="title" id="monthly-title">월별 출결현황</h2><p class="muted">날짜별 출결과 해당 월의 집계를 확인하세요.</p></div>
+        <div class="row"><label for="month">조회 월</label><input id="month" type="month"></div>
+      </div>
+      <div class="table-wrap"><table class="month-table"><thead id="monthly-head"></thead><tbody id="monthly-body"></tbody></table><div id="monthly-empty" class="empty" hidden>등록된 학생이 없습니다.</div></div>
+      <p class="muted legend">출: 출석 · 지: 지각 · 공: 공결 · 병: 병결 · 조: 조퇴 · —: 미입력<br>여러 상태가 있는 날짜에는 모두 표시됩니다. 횟수는 날짜 기준이며 이수시간은 출석 교시를 합산합니다.</p>
+    </section>
+    <p class="muted">출결 정보는 현재 브라우저에만 자동 저장됩니다. 브라우저 데이터를 삭제하면 기록도 삭제됩니다.</p>
+  </main>
+  <script>
+    (() => {
+      "use strict";
+      const KEY = "class-attendance-v1";
+      const statuses = [
+        ["", "미입력", ""], ["present", "출석", "출"], ["late", "지각", "지"],
+        ["official", "공결", "공"], ["sick", "병결", "병"], ["early", "조퇴", "조"]
+      ];
+      const labels = Object.fromEntries(statuses.map(([key, label]) => [key, label]));
+      const $ = id => document.getElementById(id);
+      const today = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      };
+      let data;
+      try {
+        const saved = localStorage.getItem(KEY);
+        data = saved ? JSON.parse(saved) : { students: [], records: {}, notes: {} };
+        if (!Array.isArray(data.students) || !data.records || !data.notes) throw new Error("잘못된 저장 데이터");
+      } catch (error) {
+        alert("저장된 출결 정보를 불러오지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
+        throw error;
+      }
+      function save() {
+        try { localStorage.setItem(KEY, JSON.stringify(data)); }
+        catch (error) { alert("저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요."); throw error; }
+      }
+      if (data.students.length < 25) {
+        while (data.students.length < 25) {
+          data.students.push({ id: crypto.randomUUID(), name: `학생${data.students.length + 1}` });
+        }
+        save();
+      }
+      function entry(date, id) { return data.records[date]?.[id]; }
+      function periods(date, id) { return entry(date, id)?.periods || []; }
+      function ensureEntry(date, id) {
+        data.records[date] ||= {};
+        data.records[date][id] ||= { periods: [] };
+        return data.records[date][id];
+      }
+      function totals(id, prefix = "") {
+        const result = { present: 0, absent: 0, early: 0, late: 0, hours: 0 };
+        for (const date of Object.keys(data.records)) {
+          if (!date.startsWith(prefix)) continue;
+          const values = periods(date, id).map(item => item?.status).filter(Boolean);
+          if (values.includes("present")) result.present++;
+          if (values.includes("official") || values.includes("sick")) result.absent++;
+          if (values.includes("early")) result.early++;
+          if (values.includes("late")) result.late++;
+          result.hours += values.filter(value => value === "present").length;
+        }
+        return result;
+      }
+      function cell(row, value) {
+        const td = document.createElement("td");
+        td.textContent = value;
+        row.append(td);
+        return td;
+      }
+      function renderDaily() {
+        const date = $("date").value;
+        const body = $("daily-body");
+        body.replaceChildren();
+        $("fill-present").disabled = !date || !data.students.length;
+        for (const [index, student] of data.students.entries()) {
+          const tr = document.createElement("tr");
+          cell(tr, index + 1);
+          const name = cell(tr, "");
+          const input = document.createElement("input");
+          input.className = "student-name";
+          input.maxLength = 40;
+          input.value = student.name;
+          input.setAttribute("aria-label", `${index + 1}번 학생 이름`);
+          input.addEventListener("change", () => {
+            const value = input.value.trim();
+            if (!value) {
+              alert("학생 이름을 입력해 주세요.");
+              input.value = student.name;
+              return;
+            }
+            student.name = value;
+            input.value = value;
+            tr.querySelectorAll("select").forEach((select, i) => select.setAttribute("aria-label", `${value} ${i + 1}교시 출결`));
+            save();
+            renderNotes();
+            renderMonthly();
+          });
+          name.append(input);
+          for (let i = 0; i < 7; i++) {
+            const td = cell(tr, "");
+            const select = document.createElement("select");
+            select.setAttribute("aria-label", `${student.name} ${i + 1}교시 출결`);
+            select.disabled = !date;
+            for (const [value, label] of statuses) select.add(new Option(label, value));
+            select.value = periods(date, student.id)[i]?.status || "";
+            select.className = select.value ? `status-${select.value}` : "";
+            select.addEventListener("change", () => {
+              const status = select.value;
+              ensureEntry(date, student.id).periods[i] = status ? {
+                status,
+                time: status === "late" || status === "early"
+                  ? new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) : null
+              } : null;
+              save();
+              renderDaily();
+            });
+            td.append(select);
+          }
+          const sum = totals(student.id);
+          const summary = [["출석", sum.present], ["결과", sum.absent], ["조퇴", sum.early], ["지각", sum.late], ["이수시간", `${sum.hours}시간`]];
+          for (const [label, value] of summary) {
+            const td = cell(tr, value);
+            td.setAttribute("aria-label", `${label}: ${value}`);
+          }
+          body.append(tr);
+        }
+        renderNotes();
+      }
+      function renderNotes() {
+        const date = $("date").value;
+        const events = $("events");
+        events.replaceChildren();
+        for (const student of data.students) {
+          periods(date, student.id).forEach((item, index) => {
+            if (!item || !["late", "early"].includes(item.status)) return;
+            const div = document.createElement("div");
+            div.className = "event";
+            div.textContent = `${student.name} · ${index + 1}교시 ${labels[item.status]} · 입력 시각 ${item.time}`;
+            events.append(div);
+          });
+        }
+        if (!events.childElementCount) {
+          const text = document.createElement("p");
+          text.className = "muted";
+          text.textContent = "지각 또는 조퇴를 선택하면 입력 시각이 여기에 기록됩니다.";
+          events.append(text);
+        }
+        $("note").disabled = !date;
+        $("note").value = data.notes[date] || "";
+      }
+      function renderMonthly() {
+        const month = $("month").value;
+        const head = $("monthly-head");
+        const body = $("monthly-body");
+        head.replaceChildren();
+        body.replaceChildren();
+        $("monthly-empty").hidden = data.students.length > 0;
+        if (!month) return;
+        const [year, monthNumber] = month.split("-").map(Number);
+        const days = new Date(year, monthNumber, 0).getDate();
+        const header = document.createElement("tr");
+        for (const label of ["학생", ...Array.from({ length: days }, (_, i) => String(i + 1)), "출석", "결과", "조퇴", "지각", "이수시간"]) {
+          const th = document.createElement("th");
+          th.textContent = label;
+          header.append(th);
+        }
+        head.append(header);
+        for (const student of data.students) {
+          const tr = document.createElement("tr");
+          cell(tr, student.name);
+          for (let day = 1; day <= days; day++) {
+            const date = `${month}-${String(day).padStart(2, "0")}`;
+            const values = periods(date, student.id).map(item => item?.status);
+            const codes = statuses.filter(([value]) => value && values.includes(value)).map(([, , code]) => code);
+            const td = cell(tr, codes.join("·") || "—");
+            td.className = "month-cell";
+            td.title = codes.length ? statuses.filter(([value]) => value && values.includes(value)).map(([, label]) => label).join(", ") : "미입력";
+          }
+          const sum = totals(student.id, month + "-");
+          for (const value of [sum.present, sum.absent, sum.early, sum.late, `${sum.hours}시간`]) cell(tr, value);
+          body.append(tr);
+        }
+      }
+      function render() { renderDaily(); renderMonthly(); }
+      $("date").value = today();
+      $("month").value = today().slice(0, 7);
+      $("date").addEventListener("change", renderDaily);
+      $("month").addEventListener("change", renderMonthly);
+      $("note").addEventListener("input", () => {
+        const date = $("date").value;
+        if (!date) return;
+        if ($("note").value) data.notes[date] = $("note").value;
+        else delete data.notes[date];
+        save();
+      });
+      $("fill-present").addEventListener("click", () => {
+        const date = $("date").value;
+        if (!date) return;
+        for (const student of data.students) {
+          const record = ensureEntry(date, student.id);
+          for (let i = 0; i < 7; i++) if (!record.periods[i]?.status) record.periods[i] = { status: "present", time: null };
+        }
+        save();
+        renderDaily();
+      });
+      document.querySelectorAll("nav button").forEach(button => button.addEventListener("click", () => {
+        document.querySelectorAll("nav button").forEach(item => {
+          const active = item === button;
+          item.classList.toggle("active", active);
+          item.setAttribute("aria-selected", String(active));
+        });
+        $("daily").hidden = button.dataset.tab !== "daily";
+        $("monthly").hidden = button.dataset.tab !== "monthly";
+        if (button.dataset.tab === "monthly") renderMonthly();
+      }));
+      render();
+    })();
+  </script>
+</body>
+</html>
