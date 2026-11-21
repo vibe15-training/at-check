@@ -28,7 +28,19 @@
     button { border: 1px solid #dce3ed; border-radius: 7px; padding: 9px 13px; background: #fff; color: #34425a; cursor: pointer; font-weight: 650; }
     button:hover { background: #f4f7fc; }
     button:disabled { opacity: .5; cursor: not-allowed; }
-    .student-name { width: 120px; min-width: 0; font-weight: 650; }
+    .student-name { width: 78px; min-width: 0; font-weight: 650; }
+    .name-editor { display: flex; align-items: center; gap: 5px; }
+    .icon-button { width: 28px; height: 28px; padding: 0; border-radius: 50%; line-height: 1; font-size: 13px; }
+    .icon-button.present { color: #287c4b; border-color: #c9ead5; background: #eaf6ef; }
+    .icon-button.delete { color: #b64d5d; border-color: #f1ccd3; background: #fff7f8; }
+    .student-manager { margin-bottom: 16px; }
+    .student-manager form { display: flex; gap: 8px; flex-wrap: wrap; }
+    #student-name { min-width: 220px; }
+    .primary { background: #315fd5; border-color: #315fd5; color: #fff; }
+    .primary:hover { background: #294fae; }
+    .search-row { margin-top: 12px; }
+    #student-search { min-width: 220px; }
+    tr.filtered-out { display: none; }
     .table-wrap { overflow-x: auto; margin: 16px -20px 0; }
     table { border-collapse: collapse; width: 100%; text-align: center; font-size: 13px; }
     .daily-table { min-width: 1200px; table-layout: fixed; }
@@ -68,7 +80,7 @@
   <header>
     <div class="wrap heading">
       <div><h1>교실 출결 관리</h1><p class="sub">교시별 출결부터 월별 현황까지 한눈에</p></div>
-      <span class="badge">학생 25명 · 7교시</span>
+      <span class="badge" id="header-student-count">학생 0명 · 7교시</span>
     </div>
     <nav class="wrap" aria-label="화면 선택">
       <button type="button" class="active" data-tab="daily" aria-selected="true">일별 출결</button>
@@ -76,9 +88,23 @@
     </nav>
   </header>
   <main class="wrap">
+    <section class="card student-manager" aria-labelledby="student-manager-title">
+      <div class="row between">
+        <div><h2 class="title" id="student-manager-title">학생 명단 관리</h2><p class="muted">학생을 등록하거나 삭제할 수 있습니다.</p></div>
+      </div>
+      <form id="student-form">
+        <label for="student-name" class="muted">학생 이름</label>
+        <input id="student-name" name="student-name" maxlength="40" autocomplete="off" placeholder="예: 김민준">
+        <button class="primary" type="submit">학생 등록</button>
+      </form>
+      <div class="search-row">
+        <label for="student-search" class="muted">명단 검색</label>
+        <input id="student-search" type="search" placeholder="학생 이름 검색">
+      </div>
+    </section>
     <section id="daily" class="card" aria-labelledby="daily-title">
       <div class="row between">
-        <div><h2 class="title" id="daily-title">일별 출결 입력 <span class="badge">학생 25명</span></h2><p class="muted">학생 이름을 눌러 수정하고, 교시마다 드롭다운에서 출결을 선택하세요. 미입력은 집계되지 않습니다.<br>화면이 좁으면 표를 좌우로 밀어 나머지 교시를 확인하세요.</p></div>
+        <div><h2 class="title" id="daily-title">일별 출결 입력 <span class="badge" id="daily-student-count">학생 0명</span></h2><p class="muted">학생 이름을 눌러 수정하고, 교시마다 드롭다운에서 출결을 선택하세요. 이름 옆 ✓ 버튼은 해당 학생의 모든 교시를 출석 처리합니다.<br>화면이 좁으면 표를 좌우로 밀어 나머지 교시를 확인하세요.</p></div>
         <div class="row"><label for="date">날짜</label><input id="date" type="date"><button id="fill-present" type="button">미입력 전체 출석</button></div>
       </div>
       <div class="table-wrap">
@@ -129,15 +155,22 @@
         alert("저장된 출결 정보를 불러오지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
         throw error;
       }
+      const onlyUnusedDefaults = data.students.length > 0
+        && data.students.every((student, index) => student.name === `학생${index + 1}`)
+        && Object.keys(data.records).length === 0
+        && Object.keys(data.notes).length === 0;
+      if (onlyUnusedDefaults) {
+        data.students = [];
+        save();
+      }
       function save() {
         try { localStorage.setItem(KEY, JSON.stringify(data)); }
         catch (error) { alert("저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요."); throw error; }
       }
-      if (data.students.length < 25) {
-        while (data.students.length < 25) {
-          data.students.push({ id: crypto.randomUUID(), name: `학생${data.students.length + 1}` });
-        }
-        save();
+      function updateStudentCounts() {
+        const count = data.students.length;
+        $("header-student-count").textContent = `학생 ${count}명 · 7교시`;
+        $("daily-student-count").textContent = `학생 ${count}명`;
       }
       function entry(date, id) { return data.records[date]?.[id]; }
       function periods(date, id) { return entry(date, id)?.periods || []; }
@@ -169,6 +202,7 @@
         const date = $("date").value;
         const body = $("daily-body");
         body.replaceChildren();
+        updateStudentCounts();
         $("fill-present").disabled = !date || !data.students.length;
         for (const [index, student] of data.students.entries()) {
           const tr = document.createElement("tr");
@@ -193,7 +227,44 @@
             renderNotes();
             renderMonthly();
           });
-          name.append(input);
+          const nameEditor = document.createElement("div");
+          nameEditor.className = "name-editor";
+          nameEditor.append(input);
+          const fillStudent = document.createElement("button");
+          fillStudent.type = "button";
+          fillStudent.className = "icon-button present";
+          fillStudent.textContent = "✓";
+          fillStudent.title = "모든 교시 출석";
+          fillStudent.setAttribute("aria-label", `${student.name} 모든 교시 출석`);
+          fillStudent.disabled = !date;
+          fillStudent.addEventListener("click", () => {
+            if (!date) return;
+            const record = ensureEntry(date, student.id);
+            for (let i = 0; i < 7; i++) record.periods[i] = { status: "present", time: null };
+            save();
+            tr.querySelectorAll("select").forEach(select => {
+              select.value = "present";
+              select.className = "status-present";
+            });
+            updateSummary(tr, student.id);
+            renderNotes();
+            renderMonthly();
+          });
+          const removeStudent = document.createElement("button");
+          removeStudent.type = "button";
+          removeStudent.className = "icon-button delete";
+          removeStudent.textContent = "×";
+          removeStudent.title = "학생 삭제";
+          removeStudent.setAttribute("aria-label", `${student.name} 삭제`);
+          removeStudent.addEventListener("click", () => {
+            if (!confirm(`${student.name} 학생과 모든 출결 기록을 삭제할까요?`)) return;
+            data.students = data.students.filter(item => item.id !== student.id);
+            for (const dateRecords of Object.values(data.records)) delete dateRecords[student.id];
+            save();
+            render();
+          });
+          nameEditor.append(fillStudent, removeStudent);
+          name.append(nameEditor);
           for (let i = 0; i < 7; i++) {
             const td = cell(tr, "");
             const select = document.createElement("select");
@@ -210,7 +281,10 @@
                   ? new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) : null
               } : null;
               save();
-              renderDaily();
+              select.className = status ? `status-${status}` : "";
+              updateSummary(tr, student.id);
+              renderNotes();
+              renderMonthly();
             });
             td.append(select);
           }
@@ -223,6 +297,12 @@
           body.append(tr);
         }
         renderNotes();
+        applyStudentSearch();
+      }
+      function updateSummary(tr, studentId) {
+        const sum = totals(studentId);
+        const values = [sum.present, sum.absent, sum.early, sum.late, `${sum.hours}시간`];
+        for (let i = 0; i < values.length; i++) tr.children[9 + i].textContent = values[i];
       }
       function renderNotes() {
         const date = $("date").value;
@@ -279,6 +359,13 @@
           body.append(tr);
         }
       }
+      function applyStudentSearch() {
+        const query = $("student-search").value.trim().toLocaleLowerCase();
+        for (const row of $("daily-body").rows) {
+          const name = row.querySelector(".student-name")?.value || "";
+          row.classList.toggle("filtered-out", Boolean(query) && !name.toLocaleLowerCase().includes(query));
+        }
+      }
       function render() { renderDaily(); renderMonthly(); }
       $("date").value = today();
       $("month").value = today().slice(0, 7);
@@ -291,6 +378,22 @@
         else delete data.notes[date];
         save();
       });
+      $("student-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const input = $("student-name");
+        const name = input.value.trim();
+        if (!name) {
+          alert("학생 이름을 입력해 주세요.");
+          input.focus();
+          return;
+        }
+        data.students.push({ id: crypto.randomUUID(), name });
+        input.value = "";
+        save();
+        render();
+        input.focus();
+      });
+      $("student-search").addEventListener("input", applyStudentSearch);
       $("fill-present").addEventListener("click", () => {
         const date = $("date").value;
         if (!date) return;
